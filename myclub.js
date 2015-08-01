@@ -47,7 +47,7 @@ casper.then(function() {
 
     casper.echo('> We\'re logged in. !');
 
-/*
+
     this.capture('login.png', {
         top: 0,
         left: 0,
@@ -58,7 +58,7 @@ casper.then(function() {
    // this.captureSelector('login.png', 'html');
     this.log('saved screenshot of ' + this.getCurrentUrl() + 'to test.png', 'warning');
     
-*/
+
 
     var targetDate = new Date();
     targetDate.setDate(targetDate.getDate()+3); 
@@ -106,14 +106,14 @@ casper.then(function(){
 casper.then(function(){
 
     this.echo('> We\'re logged out.');
-/*
+
     this.capture('logout.png', {
         top: 0,
         left: 0,
         width: 500,
         height: 800
     });
-*/ 
+ 
 
 });
 
