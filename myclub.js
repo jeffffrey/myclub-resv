@@ -1,45 +1,75 @@
-var myclub_url = 'http://203.74.127.188:5566/userlogin.aspx'
-
+var myclub_url = 'http://203.74.127.188:5566/userlogin.aspx';
+var base_url = 'http://203.74.127.188:5566/';
 var username;
 var password;
 
-
 var casper = require('casper').create({
-//    verbose: true,
-//    logLevel: "debug"
 });
 
-
 var x = require('casper').selectXPath;
-
 
 casper.start(myclub_url, function(){
 
 	var now = new Date();
 
+    var childProcess;
+    try {
+        childProcess = require("child_process");
+        
+    } catch (e) {
+        casper.echo(e, "error");
+        
+    }
+
     casper.echo("> Start Course Registration Script, Current Time :" + now);
 
     // extract the passcode
     passcode_str = this.getElementInfo(x("//*[contains(@id,'ctl00_ContentPlaceHolder1_img1')]")).attributes.src;
-    passcode = passcode_str.substr(passcode_str.indexOf('=')+1);
+    passcode_url = base_url+passcode_str;
+    casper.echo("> passcode url: "+passcode_url);
 
+    var code;
     username = casper.cli.get("username");
     password = casper.cli.get("password");
+    var filename = username+'_passcode.jpg';
+    
+    this.download(passcode_url, filename);
 
-    casper.echo('> Login username = ' + username);
-    casper.echo('> Login password = ' + password);
-    casper.echo('> Login passcode = ' + passcode);
+    if (childProcess) {
+        childProcess.execFile("node", ["passcode.js", filename], null, function (err, stdout, stderr) {
+            
+            if(err) casper.echo ("error:"+err);
+            else{
+                code =  JSON.stringify(stdout).replace(/['"\\n]+/g,'');
 
-    // Fill in the form
-    this.evaluate(function(username, password, passcode) {
-        document.getElementById('ctl00_ContentPlaceHolder1_txtId').value = username;
-        document.getElementById('ctl00_ContentPlaceHolder1_txtPassword').value = password;
-        document.getElementById('ctl00_ContentPlaceHolder1_txtCC').value = passcode;
-   
-    }, username, password, passcode);
- 
-    // Ready to go !
-    this.click(x("//*[contains(@id,'ctl00_ContentPlaceHolder1_btnLogin')]"));
+                casper.echo('> Login username = ' + username);
+                casper.echo('> Login password = ' + password);
+                casper.echo('> Login passcode = ' + code);
+
+                // Fill in the form
+                casper.evaluate(function(username, password, code) {
+                    document.getElementById('ctl00_ContentPlaceHolder1_txtId').value = username;
+                    document.getElementById('ctl00_ContentPlaceHolder1_txtPassword').value = password;
+                    document.getElementById('ctl00_ContentPlaceHolder1_txtCC').value = code;
+                    
+                }, username, password, code);
+                
+                // Ready to go !
+                casper.click(x("//*[contains(@id,'ctl00_ContentPlaceHolder1_btnLogin')]"));
+            }
+
+                
+        });
+    } else {
+        casper.echo("> Unable to require child process", "warning");
+          
+    }
+
+    
+    this.wait(1000, function() {
+        this.echo("Waited for 1 second.");
+        
+    });
 })
 
 
@@ -47,17 +77,14 @@ casper.then(function() {
 
     casper.echo('> We\'re logged in. !');
 
-
-    this.capture('login.png', {
+    var login_filename = username+'_login.png';
+    casper.echo('> taking login pic');
+    this.capture(login_filename, {
         top: 0,
         left: 0,
         width: 500,
         height: 800
-    });
-
-   // this.captureSelector('login.png', 'html');
-    this.log('saved screenshot of ' + this.getCurrentUrl() + 'to test.png', 'warning');
-    
+    });    
 
 
     var targetDate = new Date();
@@ -74,7 +101,6 @@ casper.then(function() {
         mm='0'+mm
     } 
 
-
     today = yyyy+'-'+mm+'-'+dd;
 
     casper.echo('> Target Date:' + today);
@@ -82,7 +108,7 @@ casper.then(function() {
     today_js_link = "javascript:__doPostBack('btnElection','" + today_linkstr +"')"
     this.log('> Registration Link:' + today_js_link);
     var selector = 'a[href="' + today_js_link + '"]';
-//    this.echo("selector:" + selector);
+
     if (this.exists(selector)) {
         var selector2 = "//*[contains(@href,\""+today_js_link+"\")]";
         this.click(x(selector2));
@@ -91,10 +117,9 @@ casper.then(function() {
     }else{
         this.echo('> LINK NOT FOUND')
     }
-    
-    
 });
 
+/*
 casper.then(function(){
 
     this.echo('> Logging out');
@@ -102,19 +127,10 @@ casper.then(function(){
     this.click(x("//*[contains(@id,'ctl00_btnLogout')]"));
 
 });
-
+*/
 casper.then(function(){
 
     this.echo('> We\'re logged out.');
-
-    this.capture('logout.png', {
-        top: 0,
-        left: 0,
-        width: 500,
-        height: 800
-    });
- 
-
 });
 
 
@@ -138,6 +154,5 @@ casper.on('run.complete', function() {
 ////////////////////////////////////////////////
 casper.run(function() {
 
-   
-    
+
 }); 
